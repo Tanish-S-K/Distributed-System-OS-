@@ -1,0 +1,7 @@
+14-07-2025 to 24-07-2025:
+  ->Experimenting with building own file systems and learn about ata command ports and about 32 bit mode.
+  ->Planning the course of the project and setting temporary milestones.
+
+25-07-2025:
+  ->Starting the actual project, Booted the OS and Entered the 32 bit Protected Mode.
+  ->Made 2 Helper functions like print(), clear_screen();
