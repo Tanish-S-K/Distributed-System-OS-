@@ -5,3 +5,16 @@
 25-07-2025:
   ->Starting the actual project, Booted the OS and Entered the 32 bit Protected Mode.
   ->Made 2 Helper functions like print(), clear_screen();
+
+26-07-2025:
+  ->made many helper functions and functions like mem which is equivalent of malloc which made the development process easy;
+  ->made a ram based custom file-system(inlcuding directories) with tree like custom designed structure.
+  ->have options like create,delete,list,write,read.etc...
+
+27-07-2025:
+  ->since the ram based system is not persistent ,tried to make it disk based but failed.
+  ->rewritten the entire code to make it disk based and written few extra helper functions too.
+  ->the rewritten code is in such a way that i dont have to rewrite it in order to make updates again.
+
+Critical Challenge:
+ ->converting entire code into disk.(27-07-25)

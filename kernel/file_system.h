@@ -1,36 +1,34 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
-typedef enum {
-    file_node,
-    directory_node
-} NodeType;
+#include "mystdlib.h"
 
-typedef struct Node {
+#define total_sectors 256
+
+typedef struct {
     char name[16];
-    NodeType type;
-    struct Node* parent;
-    struct Node* childs;
-    struct Node* sib;
-    int child_count;
-    int* start;
-    int size;
-} Node;
+    uint8_t type;
+    uint16_t parent;
+    uint16_t child;
+    uint16_t next_sib;
+    uint16_t prev_sib;
+    uint16_t data_sector;
+    uint16_t size;
+} DiskNode;
 
-extern Node* root;
-extern Node* cur_dir;
-
+extern uint16_t cur_sec;
 void init_file_system();
-void create_dir(char *name);
-Node* find_sib(char *name);
+
+uint16_t create_dir(char *name);
+uint16_t create_file(char* name);
+void write_file(char* name, char* content);
+void read_file(char* name,char *data);
+void delete_file(char* name);
 void godir(char *name);
-void list();
+void curpos();
 void goparent();
-void displaydir();
-void create_file(char *name);
-Node* find_file(char *name);
-Node* find(char *name);
-void write_file(char *name, char* buffer);
-void read_file(char *name, char *buffer);
-void delete(char *name);
+
+void list();
+
+
 #endif

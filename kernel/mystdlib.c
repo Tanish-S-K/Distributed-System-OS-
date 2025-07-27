@@ -23,6 +23,12 @@ void print(const char* str) {
     }
 }
 
+void iprint(uint16_t n){
+    char buffer[10];
+    itoc(n,buffer);
+    print(buffer);
+}
+
 
 void clear_screen() {
     char *video = (char *)0x0B8000;
@@ -82,6 +88,13 @@ void write_sector(uint32_t lba, uint16_t* buffer) {
     while ((inb(0x1F7) & 0x80));
 }
 
+void clean_sector(uint32_t sector){
+    uint16_t buffer[256];
+    for(int i=0;i<256;i++){
+        buffer[i] = 0;
+    }
+    write_sector(sector,buffer);
+}
 
 int len(char *s){
     int cnt = 0;
@@ -106,6 +119,26 @@ int cmp(const char *a, const char *b) {
         b++;
     }
     return *a == *b;
+}
+
+char* itoc(uint16_t n, char *buffer) {
+    int i = 0;
+    if (n == 0) {
+        buffer[i++] = '0';
+        buffer[i] = '\0';
+        return buffer;
+    }
+    while (n > 0) {
+        buffer[i++] = '0' + (n % 10);
+        n /= 10;
+    }
+    buffer[i] = '\0';
+    for (int j = 0, k = i - 1; j < k; j++, k--) {
+        char temp = buffer[j];
+        buffer[j] = buffer[k];
+        buffer[k] = temp;
+    }
+    return buffer;
 }
 
 static char memory_pool[512*100];
@@ -139,4 +172,13 @@ void mem_reset(void* ptr,int size){
         p[i]=0;
     }
 }
+
+void mem_cpy(void* dest, const void* src, uint16_t size) {
+    uint8_t* d = (uint8_t*) dest;
+    const uint8_t* s = (const uint8_t*) src;
+    for (uint16_t i = 0; i < size; i++) {
+        d[i] = s[i];
+    }
+}
+
 
