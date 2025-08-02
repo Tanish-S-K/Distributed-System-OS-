@@ -1,6 +1,14 @@
-#include "mystdlib.h"
+#include "header/mystdlib.h"
 
-#define total_sectors 256
+#define total_sectors 2048
+#define bitmap_start 200
+#define entry_start 210
+#define entry_end 1000
+#define data_start 1001
+
+void load_bitmap();
+void save_bitmap();
+void format_disk();
 
 typedef struct {
     char name[19];
@@ -13,7 +21,7 @@ typedef struct {
     uint16_t size;
 } DiskNode;
 
-uint16_t bitmap[total_sectors];
+uint16_t bitmap[total_sectors+1];
 uint16_t cur_sec;
 
 void read_node(uint16_t sector, DiskNode* node) {
@@ -28,43 +36,64 @@ void write_node(uint16_t sector, DiskNode* node) {
     write_sector(sector, buffer);
 }
 
-void set_bit(uint16_t sector,uint16_t n){
-    bitmap[sector] = n;
-    write_sector(2,bitmap);
+void print_bit(){
+    load_bitmap();
+    for (int i=190;i<entry_start+10;i++) {
+        if (bitmap[i] == 1)
+            print("1");
+        else
+            print("0");
+    }
 }
 
-uint16_t salloc() {
-    read_sector(2, bitmap);
 
-    for (uint16_t i = 3; i<total_sectors; i++) {
+void load_bitmap() {
+    uint16_t buffer[256];
+    for (int i = 0; i < total_sectors / 256; i++) {
+        read_sector(bitmap_start+i, buffer);
+        mem_cpy(bitmap + i*256, buffer, sizeof(buffer));
+    }
+}
+
+
+void save_bitmap() {
+    uint16_t buffer[256];
+    for (int i=0;i<total_sectors/256;i++) {
+        mem_cpy(buffer, bitmap+i*256, sizeof(buffer));
+        write_sector(bitmap_start+i, buffer);
+    }
+}
+
+
+uint16_t salloc() {
+    load_bitmap();
+
+    for (uint16_t i=entry_start; i<total_sectors; i++) {
         if (bitmap[i] != 1) {
             bitmap[i] = 1;
-            write_sector(2, bitmap);
+            save_bitmap();
             return i;
         }
     }
     return 0;
 }
 
-void print_bit(){
-    read_sector(2,bitmap);
-    for (int i=0;i<256;i++){
-        iprint(bitmap[i]);
+
+int init_file_system() {
+    load_bitmap();
+
+    cur_sec = entry_start;
+    if (bitmap[entry_start] == 1) {
+        return 0;
     }
-}
-void init_file_system() {
-    read_sector(2, bitmap);
-    if (bitmap[3] == 1) {
-        print("File system already exists\n");
-        return;
+    format_disk();
+    for(int i=0;i<entry_start+1;i++){
+        bitmap[i] = 1;
     }
-    for (int i=0;i<256;i++){
-        bitmap[i] = 0;
-    }
-    set_bit(3,1);
-    
+    save_bitmap();
+
     DiskNode root;
-    cpy(root.name, "/");
+    cpy(root.name, "/",0);
     root.type = 1;
     root.parent = 0;
     root.child = 0;
@@ -72,10 +101,9 @@ void init_file_system() {
     root.prev_sib = 0;
     root.data_sector = 0;
     root.size = 0;
-    cur_sec = 3;
 
-    write_node(3, &root);
-    print("Initialized new file system\n");
+    write_node(entry_start, &root);
+    return 1;
 }
 
 uint16_t create_dir(char *name) {
@@ -86,7 +114,7 @@ uint16_t create_dir(char *name) {
     }
 
     DiskNode dir;
-    cpy(dir.name, name);
+    cpy(dir.name, name,0);
     dir.type = 1;
     dir.parent = cur_sec;
     dir.child = 0;
@@ -113,7 +141,6 @@ uint16_t create_dir(char *name) {
         dir.prev_sib = ptr_sector;
     }
     write_node(sec, &dir);
-    set_bit(sec,1);
     return sec;
 }
 
@@ -149,7 +176,7 @@ uint16_t create_file(char* name) {
     }
 
     DiskNode file;
-    cpy(file.name, name);
+    cpy(file.name, name,0);
     file.type = 0;
     file.parent = cur_sec;
     file.child = 0;
@@ -177,13 +204,12 @@ uint16_t create_file(char* name) {
     }
 
     write_node(sec, &file);
-    set_bit(sec,1);
     return sec;
 }
 
 uint16_t find_file(char* name){
     DiskNode cur;
-    for(int i=4;i<256;i++){
+    for(int i=entry_start;i<entry_end+1;i++){
         if (bitmap[i]){
             read_node(i,&cur);
             if(cur.type==0 && cmp(cur.name,name)){
@@ -196,7 +222,7 @@ uint16_t find_file(char* name){
 
 uint16_t find_dir(char* name){
     DiskNode cur;
-    for(int i=4;i<256;i++){
+    for(int i=entry_start;i<entry_end;i++){
         if (bitmap[i]){
             read_node(i,&cur);
             if(cur.type==1 && cmp(cur.name,name)){
@@ -216,10 +242,9 @@ void write_file(char* name, uint16_t* content) {
     DiskNode file;
     read_node(file_sec,&file);
 
-    for(int i=50;i<256;i++){
+    for(int i=data_start;i<total_sectors;i++){
         if (!bitmap[i]){
             bitmap[i] = 1;
-            char buffer[512];
             write_sector(i,content);
             file.data_sector = i;
             write_node(file_sec,&file);
@@ -281,23 +306,14 @@ void delete_file(char* name) {
             write_node(file.next_sib, &next);
         }
     }
-    set_bit(file_sec,0);
+    bitmap[file_sec] = 0;
     clean_sector(file_sec);
     if (file.data_sector) {
-        set_bit(file.data_sector,0);
+        bitmap[file.data_sector] = 0;
         clean_sector(file.data_sector);
     }
-
+    save_bitmap();
     print("File deleted successfully\n");
-}
-
-void godir(char *name){
-    uint16_t sec= find_dir(name);
-    if (!sec){
-        print("No Such Directory Exits!!!!\n");
-        return;
-    }
-    cur_sec = sec;
 }
 
 void curpos(){
@@ -314,4 +330,23 @@ void goparent(){
         print("NO Parent Exist!!!\n");
     }
     cur_sec = node.parent;
+}
+
+void godir(char *name){
+    uint16_t sec= find_dir(name);
+    if (cmp(name,"..")){
+        goparent();
+        return;
+    }
+    if (!sec){
+        print("No Such Directory Exits!!!!\n");
+        return;
+    }
+    cur_sec = sec;
+}
+
+void format_disk(){
+    for(int i=entry_start;i<total_sectors;i++){
+        clean_sector(i);
+    }
 }

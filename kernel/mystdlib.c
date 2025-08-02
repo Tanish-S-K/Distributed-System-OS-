@@ -1,9 +1,10 @@
-#include "mystdlib.h"
+#include "header/mystdlib.h"
 
 static uint8_t sector_bitmap[TOTAL_SECTORS / 8];
+static int row = 0, col = 0;
+uint8_t inb(uint16_t port);
 
 void print(const char* str) {
-    static int row = 0, col = 0;
     char* video = (char*)0xB8000;
     while (*str) {
         if (*str == '\n') {
@@ -23,19 +24,92 @@ void print(const char* str) {
     }
 }
 
+void cprint(const char c){
+    char* video = (char*)0xB8000;
+    if(c == '\n'){
+        row++;
+        col = 0;
+    }else if(c == '\b'){
+        if(col > 0){
+            col--;
+        }else if(row > 0){
+            row--;
+            col = 79;
+        }
+        int index = (row * 80 + col) * 2;
+        video[index] = ' ';
+        video[index + 1] = 0x07;
+    }else{
+        int index = (row * 80 + col) * 2;
+        video[index] = c;
+        video[index + 1] = 0x07;
+        col++;
+        if(col >= 80){
+            col = 0;
+            row++;
+        }
+    }
+}
+
+
 void iprint(uint16_t n){
     char buffer[10];
     itoc(n,buffer);
     print(buffer);
 }
 
+void input(char *buffer) {
+    char keymap[128] = {
+    0, 27, '1','2','3','4','5','6','7','8','9','0','-','=', '\b',
+    '\t','q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,
+    'a','s','d','f','g','h','j','k','l',';','\'','`', 0,'\\',
+    'z','x','c','v','b','n','m',',','.','/', 0, '*', 0,' ',
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    int i=0;
 
+    while (1){
+        if (((inb(0x64)&1))){
+            uint8_t sc = inb(0x60);
+            if (sc & 0x80 && sc>1) continue;
+            char c = keymap[sc];
+            if(c!=0){
+            cprint(c);
+            if (c=='\n'){
+                break;
+            }
+            if (c=='\b'){
+                if (i>0){
+                    buffer[--i] = '\0';
+                    continue;
+                }
+            }
+            buffer[i++] = c;}
+        }
+    }
+    buffer[i++] = '\0';
+}
+
+int nextarg(char *buffer, int i, char *parse,char end){
+    int j = 0;
+    while (buffer[i] == ' ') i++;
+    while (buffer[i] != end && buffer[i] != '\0') {
+        parse[j++] = buffer[i++];
+    }
+    parse[j] = '\0';
+    return i;
+}
 void clear_screen() {
     char *video = (char *)0x0B8000;
     for (int i = 0; i < 80 * 25; i++) {
         *video++ = ' ';
         *video++ = 0x07;
     }
+    row = 0;
+    col = 0;
 }
 
 void outb(uint16_t port, uint8_t val) {
@@ -105,10 +179,14 @@ int len(char *s){
 }
 
 
-void cpy(char *s1, char *s2) {
+int cpy(char *s1, char *s2,int i) {
+    s1 += i;
     while (*s2) {
-        *s1++ = *s2++;}
+        *s1++ = *s2++;
+        i++;
+    }
     *s1 = '\0';
+    return i;
 }
 
 

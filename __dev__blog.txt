@@ -18,3 +18,13 @@
 
 Critical Challenge:
  ->converting entire code into disk.(27-07-25)
+
+28-07-2025:
+  ->Made a cli to make it a functioning os from user perspective.
+  ->Extended the disk space and changed the structure of the disk to ease future development.
+  ->Made a Basic Authentication system
+
+Challenge:
+ ->there was corruption of disk file due to bug in code which rewrites the kernel code(01-08-2025).
+ ->Fixed it by properly seperating the kernel sectors,file entry sectors and data sectors.
+ 
