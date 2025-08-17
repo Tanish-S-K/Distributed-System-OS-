@@ -235,7 +235,7 @@ uint16_t find_dir(char* name){
     return 0;
 }
 
-void write_file(char* name, uint16_t* content) {
+void write_file(char* name, char* content) {
     uint16_t file_sec = find_file(name);
     if (!file_sec) {
         print("No Such File Found!!\n");
@@ -247,7 +247,7 @@ void write_file(char* name, uint16_t* content) {
     for(int i=data_start;i<total_sectors;i++){
         if (!bitmap[i]){
             bitmap[i] = 1;
-            write_sector(i,content);
+            write_sector(i,(uint16_t *)content);
             file.data_sector = i;
             write_node(file_sec,&file);
             return;
