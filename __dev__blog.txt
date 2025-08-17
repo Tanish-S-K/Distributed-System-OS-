@@ -27,4 +27,8 @@ Critical Challenge:
 Challenge:
  ->there was corruption of disk file due to bug in code which rewrites the kernel code(01-08-2025).
  ->Fixed it by properly seperating the kernel sectors,file entry sectors and data sectors.
- 
+
+2-08-2025 - 17-08-2025:
+
+ ->experimenting about networking in a distributive system and the internet.
+ -> added copy , move , paste command.

@@ -52,6 +52,23 @@ void cli(){
                 print("\n");
             }
         }
+        else if (cmp(parse,"cpy")){
+            status = nextarg(buffer,i,parse,' ');
+            if(status!=-1){
+                copy_file(parse);
+            }
+        }
+        else if (cmp(parse,"mov")){
+            status = nextarg(buffer,i,parse,' ');
+            if(status!=-1){
+                move_file(parse);
+            }
+        }
+        else if (cmp(parse,"paste")){
+            if(status!=-1){
+                paste_file();
+            }
+        }
         else if (cmp(parse,"dfile")){
             status = nextarg(buffer,i,parse,' ');
             if (status!=-1){

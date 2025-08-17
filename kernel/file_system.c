@@ -23,6 +23,8 @@ typedef struct {
 
 uint16_t bitmap[total_sectors+1];
 uint16_t cur_sec;
+char copy_buffer[512]="\0";
+char copy_name[100];
 
 void read_node(uint16_t sector, DiskNode* node) {
     uint16_t buffer[256];
@@ -233,7 +235,7 @@ uint16_t find_dir(char* name){
     return 0;
 }
 
-void write_file(char* name, uint16_t* content) {
+void write_file(char* name, char* content) {
     uint16_t file_sec = find_file(name);
     if (!file_sec) {
         print("No Such File Found!!\n");
@@ -245,7 +247,7 @@ void write_file(char* name, uint16_t* content) {
     for(int i=data_start;i<total_sectors;i++){
         if (!bitmap[i]){
             bitmap[i] = 1;
-            write_sector(i,content);
+            write_sector(i,(uint16_t *)content);
             file.data_sector = i;
             write_node(file_sec,&file);
             return;
@@ -253,11 +255,11 @@ void write_file(char* name, uint16_t* content) {
     }
 }
 
-void read_file(char* name,char *data) {
+int read_file(char* name,char *data) {
     uint16_t file_sec = find_file(name);
     if (!file_sec) {
         print("No Such File Found!!\n");
-        return;
+        return 0;
     }
     DiskNode file;
     read_node(file_sec,&file);
@@ -266,8 +268,9 @@ void read_file(char* name,char *data) {
         read_sector(data_sec,(uint16_t*)data);
     }
     else{
-        print("Empty!!\n");
+        print("Empty File!!\n");
     }
+    return 1;
 }
 
 void delete_file(char* name) {
@@ -314,6 +317,26 @@ void delete_file(char* name) {
     }
     save_bitmap();
     print("File deleted successfully\n");
+}
+
+int copy_file(char *name){
+    int status = read_file(name,copy_buffer);
+    if (status) cpy(copy_name,name,0);
+    return status;
+}
+
+void move_file(char *name){
+    if (copy_file(name))
+    delete_file(name);
+}
+
+void paste_file(){
+    if (copy_buffer[0]){
+        create_file(copy_name);
+        write_file(copy_name,copy_buffer);
+        return;
+    }
+    print("No Data Available!!\n");
 }
 
 void curpos(){
